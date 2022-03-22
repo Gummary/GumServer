@@ -15,6 +15,10 @@
 |---------|-----------------|
 | 4 bytes | variable length |
 
+# TODO
+
+- [] 客户端读取写入SocketChannel的过程比较类似，构造一个自己的Socket Channel封装这些逻辑
+
 # requirements
 
 jdk-17
