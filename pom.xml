@@ -13,7 +13,7 @@
         <module>nonblocking</module>
         <module>mutipplexing</module>
         <module>asynchronous</module>
-        <module>nio-api</module>
+        <module>nio-common</module>
         <module>client</module>
     </modules>
 
@@ -26,8 +26,13 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.15</version>
+            </dependency>
+            <dependency>
                 <groupId>com.gummary</groupId>
-                <artifactId>nio-api</artifactId>
+                <artifactId>nio-common</artifactId>
                 <version>1.0-SNAPSHOT</version>
             </dependency>
         </dependencies>

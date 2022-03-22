@@ -10,9 +10,9 @@
         <module name="client" />
         <module name="mutipplexing" />
         <module name="nonblocking" />
-        <module name="nio-api" />
         <module name="blocking" />
         <module name="asynchronous" />
+        <module name="nio-common" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>

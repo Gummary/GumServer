@@ -19,8 +19,9 @@
     <dependencies>
         <dependency>
             <groupId>com.gummary</groupId>
-            <artifactId>nio-api</artifactId>
+            <artifactId>nio-common</artifactId>
         </dependency>
     </dependencies>
+
 
 </project>

@@ -17,12 +17,13 @@ public class Client {
 
     private SocketChannel socketChannel = null;
 
-    private ByteBuffer contentBuf = null;
-    private ByteBuffer lengthBuf = ByteBuffer.allocate(4);
+    private ByteBuffer msgContentBuf = null;
+    private final ByteBuffer msgLengthBuf = ByteBuffer.allocate(4);
 
     public void start(String address, int port) {
         socketChannel = openSocketChannel();
         connectToServer(address, port);
+        msgContentBuf = ByteBuffer.allocate(1024);
     }
 
     private void connectToServer(String address, int port) {
@@ -46,53 +47,104 @@ public class Client {
         return socketChannel;
     }
 
-    public void sendMessage(String content) {
-        Message message = new Message();
-        byte[] contentArray = content.getBytes(StandardCharsets.UTF_8);
-        message.setLength(contentArray.length);
-        message.setContent(contentArray);
-
-        lengthBuf.putInt(message.getLength());
-        lengthBuf.flip();
-        writeLengthBuf(socketChannel);
-        lengthBuf.clear();
-
-
-        if (Objects.isNull(contentBuf) || contentBuf.capacity() < message.getLength()) {
-            contentBuf = ByteBuffer.allocate(message.getLength());
-        }
-        contentBuf.put(contentArray);
-        contentBuf.flip();
-        writeContentBuf(socketChannel);
-        contentBuf.clear();
-
-        closeSocketChannel(socketChannel);
-
+    public void sendMessage(byte[] content) {
+        Message message = new Message(content.length, content);
+        writeMessage(message, socketChannel);
     }
 
-    private void writeLengthBuf(SocketChannel socketChannel) {
-        while (lengthBuf.hasRemaining()) {
+    public Message readMessage() {
+        return readMessage(socketChannel);
+    }
+
+    private Message readMessage(SocketChannel socketChannel) {
+        // read message length
+        int msgLength = readLengthFrom(socketChannel);
+
+        // read content
+        while (msgLength > msgContentBuf.capacity()) {
+            msgContentBuf = ByteBuffer.allocate(msgContentBuf.capacity() * 2);
+        }
+        byte[] msgBytes = readContentFrom(socketChannel, msgLength);
+
+        String content = new String(msgBytes, StandardCharsets.UTF_8);
+        System.out.printf("Message length: %d\nMessage Content: %s%n", msgLength, content);
+
+        return new Message(msgLength, msgBytes);
+    }
+
+    private int readLengthFrom(SocketChannel socketChannel) {
+        msgLengthBuf.clear();
+        while (msgLengthBuf.hasRemaining()) {
             try {
-                socketChannel.write(lengthBuf);
+                socketChannel.read(msgLengthBuf);
             } catch (IOException e) {
-                System.out.println("写入socket失败");
-                throw new RuntimeException("写入socket失败");
+                throw new RuntimeException("read message length from socket error", e);
+            }
+        }
+
+        msgLengthBuf.flip();
+        return msgLengthBuf.getInt();
+    }
+
+    private byte[] readContentFrom(SocketChannel socketChannel, int msgLength) {
+        msgContentBuf.clear();
+        msgContentBuf.limit(msgLength);
+        while (msgContentBuf.hasRemaining()) {
+            try {
+                socketChannel.read(msgContentBuf);
+            } catch (IOException e) {
+                throw new RuntimeException("read message content from socket error", e);
+            }
+        }
+
+        byte[] msgArray = new byte[msgLength];
+        msgContentBuf.flip();
+        msgContentBuf.get(msgArray, 0, msgLength);
+
+        return msgArray;
+    }
+
+    private void writeMessage(Message message, SocketChannel socketChannel) {
+        int length = message.getLength();
+        writeLengthTo(socketChannel, length);
+
+        while (msgContentBuf.capacity() < message.getLength()) {
+            msgContentBuf = ByteBuffer.allocate(msgContentBuf.capacity() * 2);
+        }
+
+        byte[] content = message.getContent();
+        writeContentTo(socketChannel, content);
+    }
+
+    private void writeLengthTo(SocketChannel socketChannel, int length) {
+        msgLengthBuf.clear();
+        msgLengthBuf.putInt(length);
+
+        msgLengthBuf.flip();
+        while (msgLengthBuf.hasRemaining()) {
+            try {
+                socketChannel.write(msgLengthBuf);
+            } catch (IOException e) {
+                throw new RuntimeException("Write to socket channel error", e);
             }
         }
     }
 
-    private void writeContentBuf(SocketChannel socketChannel) {
-        while (contentBuf.hasRemaining()) {
+    private void writeContentTo(SocketChannel socketChannel, byte[] content) {
+        msgContentBuf.clear();
+        msgContentBuf.put(content);
+
+        msgContentBuf.flip();
+        while (msgContentBuf.hasRemaining()) {
             try {
-                socketChannel.write(contentBuf);
+                socketChannel.write(msgContentBuf);
             } catch (IOException e) {
-                System.out.println("写入socket失败");
-                throw new RuntimeException("写入socket失败", e);
+                throw new RuntimeException("Write to socket channel error", e);
             }
         }
     }
 
-    private void closeSocketChannel(SocketChannel socketChannel) {
+    public void closeSocketChannel() {
         if (Objects.isNull(socketChannel)) {
             return;
         }

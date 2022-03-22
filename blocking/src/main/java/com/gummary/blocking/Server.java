@@ -1,5 +1,7 @@
 package com.gummary.blocking;
 
+import com.gummary.api.Message;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -20,7 +22,6 @@ public class Server {
     private ServerSocketChannel serverSocketChannel;
 
     private final ByteBuffer msgLengthBuf;
-
     private ByteBuffer msgContentBuf;
 
     public Server(int port) {
@@ -43,15 +44,16 @@ public class Server {
 
 
     public void start() {
-        bindToPort(port);
+        bindToPort();
         while (true) {
             SocketChannel socketChannel = acceptClientConnection();
+            System.out.println("Accept new connection");
             handleIncomingConnection(socketChannel);
             closeSocketChannel(socketChannel);
         }
     }
 
-    private void bindToPort(int port) {
+    private void bindToPort() {
         try {
             serverSocketChannel.bind(new InetSocketAddress(this.port));
         } catch (IOException e) {
@@ -70,56 +72,101 @@ public class Server {
     }
 
 
-    public void stop() throws IOException {
-        serverSocketChannel.close();
-    }
-
     private void handleIncomingConnection(SocketChannel socketChannel) {
         if (Objects.isNull(socketChannel)) {
             return;
         }
+        Message message = readMessage(socketChannel);
+        writeMessage(message, socketChannel);
+    }
+
+
+    private Message readMessage(SocketChannel socketChannel) {
         // read message length
-        readLengthFromSocketChannel(socketChannel);
-        int msgLength = msgLengthBuf.getInt();
-        msgLengthBuf.clear();
+        int msgLength = readLengthFrom(socketChannel);
 
         // read content
         while (msgLength > msgContentBuf.capacity()) {
             msgContentBuf = ByteBuffer.allocate(msgContentBuf.capacity() * 2);
         }
-        int readMsgLength = readContentFromSocketChannel(socketChannel, msgLength);
-        byte[] msgArray = new byte[readMsgLength];
-        msgContentBuf.get(msgArray, 0, msgLength);
-        msgContentBuf.clear();
+        byte[] msgBytes = readContentFrom(socketChannel, msgLength);
 
-        String content = new String(msgArray, StandardCharsets.UTF_8);
-        System.out.println(String.format("Message length: %d\nMessage Content: %s", msgLength, content));
+        String content = new String(msgBytes, StandardCharsets.UTF_8);
+        System.out.printf("Message length: %d\nMessage Content: %s%n", msgLength, content);
+
+        return new Message(msgLength, msgBytes);
     }
 
-    private void readLengthFromSocketChannel(SocketChannel socketChannel) {
+    private int readLengthFrom(SocketChannel socketChannel) {
+        msgLengthBuf.clear();
         while (msgLengthBuf.hasRemaining()) {
             try {
-                int readSize = socketChannel.read(msgLengthBuf);
+                socketChannel.read(msgLengthBuf);
             } catch (IOException e) {
-                throw new RuntimeException("读取数据失败", e);
+                throw new RuntimeException("read message length from socket error", e);
             }
         }
+
         msgLengthBuf.flip();
+        return msgLengthBuf.getInt();
     }
 
-    private int readContentFromSocketChannel(SocketChannel socketChannel, int msgLength) {
-        int readMsgLength = 0;
-        while (readMsgLength < msgLength) {
-            int readSize = 0;
+    private byte[] readContentFrom(SocketChannel socketChannel, int msgLength) {
+        msgContentBuf.clear();
+        msgContentBuf.limit(msgLength);
+        while (msgContentBuf.hasRemaining()) {
             try {
-                readSize = socketChannel.read(msgContentBuf);
+                socketChannel.read(msgContentBuf);
             } catch (IOException e) {
-                throw new RuntimeException("读取数据失败", e);
+                throw new RuntimeException("read message content from socket error", e);
             }
-            readMsgLength += readSize;
         }
+
+        byte[] msgArray = new byte[msgLength];
         msgContentBuf.flip();
-        return readMsgLength;
+        msgContentBuf.get(msgArray, 0, msgLength);
+
+        return msgArray;
+    }
+
+    private void writeMessage(Message message, SocketChannel socketChannel) {
+        int length = message.getLength();
+        writeLengthTo(socketChannel, length);
+
+        while (msgContentBuf.capacity() < message.getLength()) {
+            msgContentBuf = ByteBuffer.allocate(msgContentBuf.capacity() * 2);
+        }
+
+        byte[] content = message.getContent();
+        writeContentTo(socketChannel, content);
+    }
+
+    private void writeLengthTo(SocketChannel socketChannel, int length) {
+        msgLengthBuf.clear();
+        msgLengthBuf.putInt(length);
+
+        msgLengthBuf.flip();
+        while (msgLengthBuf.hasRemaining()) {
+            try {
+                socketChannel.write(msgLengthBuf);
+            } catch (IOException e) {
+                throw new RuntimeException("Write to socket channel error", e);
+            }
+        }
+    }
+
+    private void writeContentTo(SocketChannel socketChannel, byte[] content) {
+        msgContentBuf.clear();
+        msgContentBuf.put(content);
+
+        msgContentBuf.flip();
+        while (msgContentBuf.hasRemaining()) {
+            try {
+                socketChannel.write(msgContentBuf);
+            } catch (IOException e) {
+                throw new RuntimeException("Write to socket channel error", e);
+            }
+        }
     }
 
     private void closeSocketChannel(SocketChannel socketChannel) {
@@ -133,5 +180,14 @@ public class Server {
         }
     }
 
+    public void stop() {
+        if (serverSocketChannel.isOpen()) {
+            try {
+                serverSocketChannel.close();
+            } catch (IOException e) {
+                throw new RuntimeException("Close Server Socket Channel Error", e);
+            }
+        }
+    }
 
 }
