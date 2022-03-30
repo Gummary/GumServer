@@ -82,7 +82,7 @@ public class Server {
 
 
     private Message readMessage(SocketChannel socketChannel) {
-        // read message length
+        // read content length
         int msgLength = readLengthFrom(socketChannel);
 
         // read content

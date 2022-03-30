@@ -13,7 +13,7 @@ public class Application {
     public static void main(String[] args) {
         Client client = new Client();
         String message = "test";
-        client.start("127.0.0.1", 9999);
+        client.connectToServer("127.0.0.1", 9999);
         client.sendMessage(message.getBytes(StandardCharsets.UTF_8));
         Message receivedMsg = client.readMessage();
         String content = new String(receivedMsg.getContent(), StandardCharsets.UTF_8);

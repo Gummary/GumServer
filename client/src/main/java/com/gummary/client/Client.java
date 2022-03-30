@@ -20,13 +20,12 @@ public class Client {
     private ByteBuffer msgContentBuf = null;
     private final ByteBuffer msgLengthBuf = ByteBuffer.allocate(4);
 
-    public void start(String address, int port) {
-        socketChannel = openSocketChannel();
-        connectToServer(address, port);
+    public Client() {
         msgContentBuf = ByteBuffer.allocate(1024);
+        socketChannel = openSocketChannel();
     }
 
-    private void connectToServer(String address, int port) {
+    public void connectToServer(String address, int port) {
         try {
             socketChannel.connect(new InetSocketAddress(address, port));
         } catch (IOException e) {
