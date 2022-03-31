@@ -1,6 +1,7 @@
 package com.gummary.client;
 
 import com.gummary.api.Message;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -13,6 +14,7 @@ import java.util.Objects;
  * @author hepeng16
  * @date 2022/3/17 8:01 下午
  */
+@Slf4j
 public class Client {
 
     private SocketChannel socketChannel = null;
@@ -29,7 +31,7 @@ public class Client {
         try {
             socketChannel.connect(new InetSocketAddress(address, port));
         } catch (IOException e) {
-            System.out.println("连接远程服务器失败");
+            log.error("连接远程服务器失败");
             throw new RuntimeException("连接远程服务器失败", e);
         }
     }
@@ -40,7 +42,7 @@ public class Client {
         try {
             socketChannel = SocketChannel.open();
         } catch (IOException e) {
-            System.out.println("打开socket连接失败");
+            log.error("打开socket连接失败");
             throw new RuntimeException("打开socket连接失败", e);
         }
         return socketChannel;
@@ -66,7 +68,7 @@ public class Client {
         byte[] msgBytes = readContentFrom(socketChannel, msgLength);
 
         String content = new String(msgBytes, StandardCharsets.UTF_8);
-        System.out.printf("Message length: %d\nMessage Content: %s%n", msgLength, content);
+        log.info("Message length: {}\nMessage Content: {}", msgLength, content);
 
         return new Message(msgLength, msgBytes);
     }
@@ -77,6 +79,7 @@ public class Client {
             try {
                 socketChannel.read(msgLengthBuf);
             } catch (IOException e) {
+                log.error("read message length from socket error", e);
                 throw new RuntimeException("read message length from socket error", e);
             }
         }
@@ -92,6 +95,7 @@ public class Client {
             try {
                 socketChannel.read(msgContentBuf);
             } catch (IOException e) {
+                log.error("read message content from socket error", e);
                 throw new RuntimeException("read message content from socket error", e);
             }
         }
@@ -124,6 +128,7 @@ public class Client {
             try {
                 socketChannel.write(msgLengthBuf);
             } catch (IOException e) {
+                log.error("Write to socket channel error", e);
                 throw new RuntimeException("Write to socket channel error", e);
             }
         }
@@ -138,6 +143,7 @@ public class Client {
             try {
                 socketChannel.write(msgContentBuf);
             } catch (IOException e) {
+                log.error("Write to socket channel error", e);
                 throw new RuntimeException("Write to socket channel error", e);
             }
         }
@@ -150,7 +156,8 @@ public class Client {
         try {
             socketChannel.close();
         } catch (IOException e) {
-            throw new RuntimeException("关闭");
+            log.error("Close socket error", e);
+            throw new RuntimeException("Close socket error", e);
         }
     }
 
