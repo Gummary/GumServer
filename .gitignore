@@ -34,7 +34,6 @@ replay_pid*
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
 .idea/**/shelf
-.idea/**/jarRepositories.xml
 
 # AWS User-specific
 .idea/**/aws.xml
@@ -61,7 +60,7 @@ replay_pid*
 # auto-import.
 # .idea/artifacts
 # .idea/compiler.xml
-# .idea/jarRepositories.xml
+.idea/jarRepositories.xml
 # .idea/modules.xml
 # .idea/*.iml
 # .idea/modules
