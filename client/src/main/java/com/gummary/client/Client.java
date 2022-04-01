@@ -48,8 +48,7 @@ public class Client {
         return socketChannel;
     }
 
-    public void sendMessage(byte[] content) {
-        Message message = new Message(content.length, content);
+    public void sendMessage(Message message) {
         writeMessage(message, socketChannel);
     }
 

@@ -1,12 +1,16 @@
 package com.gummary.client;
 
+import com.gummary.api.Message;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author hepeng16
  * @date 2022/3/31 10:12 上午
  */
+@Slf4j
 public class BenchmarkTask implements Runnable {
 
     private final long duration;
@@ -30,6 +34,11 @@ public class BenchmarkTask implements Runnable {
         long endTime = System.currentTimeMillis() + duration;
         while (System.currentTimeMillis() < endTime) {
             client.connectToServer(address, port);
+            String content = generateRandomString();
+            Message message = new Message(content.length(), content.getBytes(StandardCharsets.UTF_8));
+            client.sendMessage(message);
+            Message receivedMessage = client.readMessage();
+            log.info("Received message: {}", new String(receivedMessage.getContent(), StandardCharsets.UTF_8));
         }
     }
 
