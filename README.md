@@ -11,9 +11,9 @@
 
 客户端与服务端之间使用的协议如下：
 
-| length  | content         |
-|---------|-----------------|
-| 4 bytes | variable length |
+|  type  | length  | content         |
+|--------|---------|-----------------|
+| 1 byte | 4 bytes | variable length |
 
 # TODO
 
